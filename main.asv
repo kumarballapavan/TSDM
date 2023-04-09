@@ -1,0 +1,515 @@
+
+
+% This is the main function of the Region Based adaptive dehazing, details
+% enhancement and pre-processing using auto-color transfer method
+% 
+% The pre-proessing of hazy image (auto-color transfer) is performed using 
+% the function: 'CT'
+%
+% The image categorization of hazy image (less affected by haze, moderately
+% affected by haze and more affected by haze regions) is performed using 
+% the function 'Image_Classification')
+%
+%   Input arguments:
+%   ----------------
+%	- Oimg : input haze image, type "unsigned integer"
+%	- GT : Ground-Truth image
+%   - count : Counter for hazy images
+%	- validation : If hazy image has a corresponding ground-truth image,
+%	  its one, else its zero.
+%   - imagename: Name of the hazy image from the DB
+
+
+
+Oimg=imread('hazy/01_indoor_hazyc.png');
+output_folder = 'Dehazing_Results';
+
+Oimg=imresize(Oimg,[360 480]);
+%GT=imresize(GT,[360 480]);
+
+img = im2double(Oimg);
+imgg = im2double(Oimg);
+
+%outputFileName = fullfile(output_folder, [imagename, '.png']);
+
+img_gray=rgb2gray(img);
+
+[m,n]=size(img_gray);
+
+% Function 'CT' for auto-color transfer function, to enhance the
+% low-intensity regions of a hazy image.
+%
+%   Input arguments:
+%   ----------------
+%	- S: Source Image
+%   - Tg: Target Image
+%
+%   Output arguments:
+%   ----------------
+%   - r: Enhanced Image
+%   - comp_time0 : Computation time of this function.
+
+% img1diff=img1max-img1;
+%img1diff(img1diff<=0)=
+% if numel(img(img<T))>10
+% img1max=im2uint8(img1max);
+% % filename='img1max.xlsx';
+% % img1max1=img1max(:,:,1);
+% % img1max2=img1max(:,:,2);
+% % img1max3=img1max(:,:,3);
+% 
+% 
+% 
+% % imwrite(img1,'img1.png');
+% % imwrite(img1max,'img1max.png');
+% % source='img1max.png';
+% % target='img1.png';
+% % S=imread(source);
+% % Tg=imread(target);
+% S=img;
+% Tg=img^0.4;
+% [r, comp_time0]=CT(double(S)/255,double(Tg)/255);
+% % disp("Inside dark enhancement");
+% img(img1f<T)=r(img1f<T);
+% %figure;imshow([img1f r]);title('img1f vs Dark enhanced');
+% %figure;imshow([imgg img]);title('org vs org Dark enhanced');
+% end
+%difference=zeros(size(img));
+
+B=mean(mean(img_gray));count75=0;
+
+for i=1:m
+   for j=1:n
+       
+       if img_gray(i,j)<0.3
+           count75=count75+1;
+       end
+           
+   end
+end
+
+
+if count75>1000
+img_gt=img.^0.7;
+% img_gt=img.^0.4;
+Tg=im2uint8(img);
+S=im2uint8(img_gt);
+imwrite(Tg,'Tg.png');
+imwrite(S,'S.png');
+S=imread('S.png');
+Tg=imread('Tg.png');
+%figure;
+%imshow([S Tg]);
+
+[r, comp_time0]=CT(double(S)/255,double(Tg)/255);
+
+%imwrite(im2uint8(r),outputFileName);
+%return
+
+
+img=r;
+end
+
+% figure;
+% imshow([img im2double(S) r]);
+% if numel(img(img<T))>100
+% rg=rgb2gray(r);img1maxg=rgb2gray(img1max);
+% 
+% figure(1);imshow(S);title('Source Image');
+% colormap jet
+% figure(2);imshow(Tg);title('Target Image');
+% colormap jet
+% figure(3);imshow([rgb2gray(img1) rg]);title('Dark regions in hazy image vs enhanced dark regions');
+% figure(4);imshow([rg]);title('enhanced dark regions');
+% %colormap jet
+% % imwrite([rgb2gray(img1)],[imagename, '.png'])
+% % colormap jet
+% % pause(3);
+% 
+% 
+% 
+% difference(:,:,1)=im2uint8(r(:,:,1))-S(:,:,1);
+% difference(:,:,2)=im2uint8(r(:,:,2))-S(:,:,2);
+% difference(:,:,3)=im2uint8(r(:,:,3))-S(:,:,3);
+% Num=numel(difference>10)
+% disp('Maximum difference:');disp(max(max(difference)));
+% rnew=zeros(size(r));
+% % 
+% % rnew(:,:,1)=img1(:,:,1)+rgb2gray(difference);
+% % rnew(:,:,2)=img1(:,:,2)+rgb2gray(difference);
+% % rnew(:,:,3)=img1(:,:,3)+rgb2gray(difference);
+% %img(img1f<T)=rnew(img1f<T);
+% img_med=medfilt3(img);
+% img_med_99=medfilt3(img,[9 9 3]);
+% 
+% 
+% %figure(3);imshow([img img_med img_med_99]);title('Normalised enhancement vs Its median');
+% 
+% % filename = 'difference.xlsx';
+% % A = {'difference1','difference2','difference3'; difference(:,:,1),difference(:,:,2),difference(:,:,3)};
+% % xlswrite(filename,difference(:,:,1),'difference1');
+% % xlswrite(filename,difference(:,:,2),'difference2');
+% % xlswrite(filename,difference(:,:,3),'difference3');
+% end
+
+% imwrite(im2uint8(r),[imagename, '.png']);
+
+%dmax=max(max(difference));
+
+% if numel(img(img<T))<10
+% comp_time0=0;
+% disp('No dark regions');
+% end
+img1=zeros(size(img));%img1f=zeros(size(img));
+%img1=im2double(img1);
+
+% Function 'Image_Classification' for auto-color transfer function, to enhance the
+% low-intensity regions of a hazy image.
+%
+%   Input arguments:
+%   ----------------
+%	- img: Pre-processed Hazy Image
+%
+%   Output arguments:
+%   ----------------
+%   - img_map: Image map with region classification i.e., Red colour for
+%   less-affected by haze regions, Green colour for moderately affected by
+%   haze regions and blue colour for more-affected by haze regions.
+
+
+img_map=Image_Classification(img);
+% imwrite(img_map,[imagename, '.png']);
+%figure(2); imshow([Oimg img_map]);
+
+% T=0.45;
+
+% img2=zeros(size(img));
+% img3=zeros(size(img));
+% for i=1:m
+%     for j=1:n
+%         %disp('n:');disp(n);
+%         if (img(i,j,1)<=T) || (img(i,j,2)<=T) || (img(i,j,3)<=T)
+%             img1(i,j,:)=img(i,j,:);
+%             
+%         elseif (img(i,j,1)>=U) && (img(i,j,2)>=U) && (img(i,j,3)>=U)
+%             img3(i,j,:)=img(i,j,:);
+%             
+%         else
+%               img2(i,j,:)=img(i,j,:);
+%         end
+%     end  
+% end
+    %disp('m:');disp(m);
+    
+
+
+
+            
+%Oimg2=im2uint8(img);
+%Oimggray=rgb2gray(Oimg);
+%imggray=im2double(Oimggray);
+%Oimgrgb=grs2rgb(Oimggray,MAP);
+%figure(7);imshow([Oimggray Oimgrgb]);title('Gray vs RGB');
+%figure(4);imshow([img img1 img3]);title('Input RGB Image vs img1 vs img3');
+%img1=medfilt3(img1,[5 5 3]);
+%img3=medfilt3(img3,[5 5 3]);
+%img=medfilt3(img,[3 3 3]);
+%figure(5);imshow([img img1 img3]);title('Input RGB Image vs filtered img1 vs filtered img3');
+%img2=img-img1-img3;
+%img2=medfilt3(img2,[3 3 3]);
+% img11=img1;
+% img21=img2;img31=img3;
+% %figure;imshow([img11 img21 img31]);title('img11 vs img21 vs img31');
+% 
+% 
+% img1mean=[T/2,T/2,T/2];%img11=img1;img22=img2;img33=img3;
+% imgmean=mean(mean(img));img1min=[0.01,0.01,0.01];
+% img3mean=[1-T/2,1-T/2,1-T/2];img3max=[0.99,0.99,0.99];
+% for i=1:m
+%     for j=1:n
+%         if (img1(i,j,1)<0.01) && (img1(i,j,2)<0.01) && (img1(i,j,3)<0.01)
+%             img1(i,j,:)=img3max;
+%             img1(i,j,:)=img3max;
+%        end
+%         if (img2(i,j,1)<0.05) || (img2(i,j,2)<0.05) || (img2(i,j,3)<0.05)
+%             img2(i,j,:)=img3max;
+%         end
+%         if (img3(i,j,1)<0.01) && (img3(i,j,2)<0.01) && (img3(i,j,3)<0.01)
+%             img3(i,j,:)=img3mean;
+%         end
+%     end
+% end
+      
+%img1max=zeros(size(img1));
+%for i=1:m
+ %   for j=1:n
+  %      img1max(m,n,:)=img1maxi;
+  %  end
+% end
+
+%img1max(img1<T)=max(img1(img1<T));
+%img1max(img1>T)=max(img1(img1>T));
+%figure(7);imshow([img1 img1max]);title('Dark vs img1max');
+
+%img1(img1>T)=mean(img(img1<T));
+%img2(img3>U)=mean(img(img3>U));
+%img3(img3<U)=max(img3(img3<U));
+%figure(7);imshow([img1 img2 img3]);title('img1 vs img2 vs img3');
+%img1(img<T)=img(img<T);img3(img>U)=img(img>U);
+%img1(img>T)=White(img>T);img3(img<U)=Black(img<U);
+%[m,n,p] = size(img1);
+%img1f = medfilt3(img1,[5 5 3]);img3f=medfilt3(img3,[51 51 3]);img3f=medfilt3(img3f,[15 15 3]);
+%img1f2 = medfilt3(img1f,[5 5 3]);
+%figure(1);imshow([img1 img1f]);title('Dark overview vs dark filtered');
+
+%img1(img1f<T)=img(img1f<T);img3(img3f>U)=img(img3f>U);
+%img1(img1f>T)=Black(img1f>T);
+%img2=img-img1-img3f;
+%img2(img3f>U)=mean(img3f(img3f>U));
+%img2(img1f<T)=mean(img1f(img1f<T));
+%img2f=medfilt3(img2,[51 51 3]);
+%img2=medfilt3(img2,[5 5 3]);
+%figure(6);imshow([img2]);title('bright overview');
+%img1(img1f>T)=mean(img1f(img1f<T));img3(img3f<U)=mean(img3f(img3f>U));
+%figure(4);imshow([img3 img3f]);title('Brightest overview vs brightest filtered');
+%img1(img>T)=Black(img>T);
+%img3(img<0.85)=Black(img<0.85);
+%img3(img>0.85)=img(img>0.85);
+%figure(2);imshow(img3);title('Brightest overview-1');
+%img2=img-(img1+img3);
+%img1(img>T)=mean(img(img<T));
+
+
+%figure(2);imshow([img1 img1f]);title('Img1 vs Img1f');
+%img1=img1f;
+
+%img2((img<T)||(img>0.85))=mean(img);
+%img2(img<T)=mean2(img);
+%img2(img>0.85)=mean2(img);
+%figure(5);imshow(img2);title('Bright overview');
+%img3(img<0.85)=mean(img(img>0.85));
+%figure(6);imshow(img3);title('Brightest overview-2');
+
+%figure(4);imshow(img3);title('Brightest overview');
+%figure(1);imshow(img1);title('Dark overview');
+
+
+%img1max=max(max(img1));
+%figure(3);imshow([img1 img1max]);title('Img1 vs Img1max');
+%[m,n,p] = size(img1);
+%img1 = medfilt3(img1,[m/10 n/10 p]);
+%figure(3);imshow([img img1]);title('RGBImage versus Dark-filtered');
+%img2(img>T)=img(img>T);
+%img2(img<T)=Black(img<T);
+%Oimg2=im2uint8(img);
+%figure(5);imshow([Oimg Oimg2]);title('Original image versus Original-filtered');
+
+%img2 = medfilt3(img2,[m/10 n/10 p]);
+%disp('Number of dark pixels:');disp(numel(img(img<T)));
+%disp('Number of RGB Image pixels:');disp(numel(img));
+
+
+
+%figure(2);imshow([img img2]);title('RGBImage versus Non-Dark');
+%img1(img1f>T)=mean(img1f(img1f<T));
+%figure(7);imshow([img1 img2 img3]);title('Image parts overview img1 img2 img3');
+% img=imgg;
+HS=new_indicator_v5_opt(img);
+
+Atm_light=Alight(im2double(img));
+%Atm_light_h=Alight(im2double(GT));
+
+% HS=Image_Classification_HS(img,mean(Atm_light));
+% if HDE>0.5
+%     imwrite(img,[imagename, '.png']);
+% end
+[dehazed_img1, comp_time1, trans_map1] = fcn_multi(img,HS,1);
+
+%imwrite(Odehazed_img,outputFileName);
+[dehazed_img2, comp_time2, trans_map2] = fcn_multi(img,HS,2);
+
+[dehazed_img3, comp_time3, trans_map3] = fcn_multi(img,HS,3);
+% Odehazed_img3=im2uint8(dehazed_img3);
+
+%figure(3);imshow([dehazed_img1 dehazed_img2 dehazed_img3]);title('Different dehazed outcomes from three different blocks');
+
+%[dehazed_img4, comp_time4, trans_map4] = fcn_multi(img,4);
+%figure(8);imshow([dehazed_img2 dehazed_img3]);title('Dehazed Image parts');
+%figure(12);imshow([img1 dehazed_img1 ]);title('img1 vs dehazed');
+%figure(13);imshow([img2 dehazed_img2]);title('img2 vs dehazed');
+%figure;imshow([dehazed_img1 dehazed_img2 dehazed_img3]);title('dehazed img1 dehazed img2 dehazed img3');
+
+dehazed_img=zeros(size(img));k=0;
+
+% for i=1:m
+%     for j=1:n
+%         if (img1(i,j,:)==img3max)
+%             dehazed_img(i,j,:)=dehazed_img(i,j,:);
+%         else
+%             dehazed_img(i,j,:)=dehazed_img1(i,j,:);
+%             k=k+1;
+%         end
+%     end
+% end
+% %disp('k:'); disp(k);
+% %figure(10);imshow(dehazed_img);title('Dehazed Image after img1');
+% for i=1:m
+%     for j=1:n
+%         if (img2(i,j,:)==img3max)
+%             dehazed_img(i,j,:)=dehazed_img(i,j,:);
+%         else
+%             dehazed_img(i,j,:)=dehazed_img2(i,j,:);
+%         end
+%     end
+% end
+% %figure(11);imshow(dehazed_img);title('Dehazed Image after img2');
+% for i=1:m
+%     for j=1:n
+%         if (img3(i,j,:)==img3mean)
+%             dehazed_img(i,j,:)=dehazed_img(i,j,:);
+%         else
+%             dehazed_img(i,j,:)=dehazed_img3(i,j,:);
+%         end
+%     end
+% end
+
+
+% Mapping of dehazing results with their respective regions
+
+
+img1=zeros(size(img));
+img2=zeros(size(img));
+img3=zeros(size(img));
+
+img_map_R=img_map(:,:,1);img_map_G=img_map(:,:,2); img_map_B=img_map(:,:,3);
+
+I_cond= img_map_R~=0;
+I_cond31=I_cond(:,:,[1 1 1]);
+
+
+dehazed_img(I_cond31)=dehazed_img1(I_cond31);
+img1(I_cond31)=dehazed_img1(I_cond31);
+
+
+I_cond= img_map_G~=0;
+I_cond32=I_cond(:,:,[1 1 1]);
+
+dehazed_img(I_cond32)=dehazed_img2(I_cond32);
+img2(I_cond32)=dehazed_img2(I_cond32);
+
+I_cond= img_map_B~=0;
+I_cond33=I_cond(:,:,[1 1 1]);
+
+dehazed_img(I_cond33)=dehazed_img3(I_cond33);
+img3(I_cond33)=dehazed_img3(I_cond33);
+
+
+%figure(4);imshow([img_map img1 img2 img3]);title('Dehazed outputs from three different blocks are merged according to the image categorization');
+
+% for i=1:m
+%     for j=1:n
+%         %disp('n:');disp(n);
+%         if (img(i,j,1)<=T) && (img(i,j,2)<=T) && (img(i,j,3)<=T)
+%             img1(i,j,:)=dehazed_img(i,j,:);
+%             
+%         elseif (img(i,j,1)>=U) && (img(i,j,2)>=U) && (img(i,j,3)>=U)
+%             img3(i,j,:)=dehazed_img(i,j,:);
+%             
+%         else
+%               img2(i,j,:)=dehazed_img(i,j,:);
+%         end
+%     end  
+% end
+
+
+%dehazed_img=medfilt3(dehazed_img,[3 3 1]);
+
+
+%figure(8);imshow([dehazed_img1 dehazed_img2 dehazed_img3]);title('Dehazed-1 vs Dehazed-2 vs Dehazed-3');
+%dehazed_img=0.5*dehazed_img1+0.5*dehazed_img2;
+%img1=im2uint8(img1);
+
+
+
+%img1(img>T)=White(img>T);img3(img<U)=Black(img<U);
+
+
+%dehazed_img(img1<T)=dehazed_img1(img1<T);
+%dehazed_img(img1>T)=dehazed_img2(img1>T);
+%dehazed_img(img3f>U)=dehazed_img3(img3f>U);
+%dehazed_img(img>0.85)=dehazed_img1(img>0.85);
+%figure(15);imshow([dehazed_img1 dehazed_img2]);title('Dark dehazed vs Bright dehazed');
+%figure(13);imshow([img1 dehazed_img1]);title('Dark vs Dark Dehazed');
+%figure(15);imshow([img2 dehazed_img2]);title('Bright vs Bright Dehazed');
+
+%comp_final=comp_time0+comp_time1+comp_time2+comp_time3;
+%imwrite(dehazed_img, ['results/' save_name '.png']);
+%f=ones(3,3)/9;
+%radius = 1;
+%J1 = fspecial('disk', radius);
+%r=medfilt2(dehazed_img(:,:,1));
+%g=medfilt2(dehazed_img(:,:,2));
+%b=medfilt2(dehazed_img(:,:,3));
+%dehazed_img_smoothing = imfilter(dehazed_img,J1,'replicate',3);
+%dehazed_img_smoothing=cat(3,r,g,b);
+%figure;imshow([img dehazed_img]);title('Enhancement result');
+Odehazed_img=im2uint8(dehazed_img);
+%Odehazed_img2=im2uint8(dehazed_img4);
+% img_brt=mean2(img);
+% dehazed_img_brt=mean2(dehazed_img);
+% img_crt = mean(img(img>0.5)) - mean(img(img<0.5));
+% dehazed_img_crt = mean(dehazed_img(dehazed_img>0.5)) - mean(dehazed_img(dehazed_img<0.5));
+%disp('Image brightness:'); disp(img_brt);
+%disp('Dehazed Image brightness:'); disp(dehazed_img_brt);
+%disp('Image contrast:'); disp(img_crt);
+%disp('Dehazed Image contrast:'); disp(dehazed_img_crt);
+Oimg=im2uint8(img);
+
+%imhistmatch()
+%Odehazed_img_pp=imhistmatch(Odehazed_img,dehazed_img1);
+%Odehazed_img_pp=imadjust(Odehazed_img,[0 1],[0.15 0.85],1);
+
+
+imwrite(Odehazed_img,outputFileName);
+
+%  figure;imshow([Oimg Odehazed_img]);title('hazy dehazed');
+% drawnow;
+
+
+
+%  Exec_time=toc;
+%  
+%  if strlength(imagename) > 31
+%     imagename=imagename(strlength(imagename)-30:strlength(imagename));
+% end
+% 
+% filename = 'proposed3_AACT-gt-0.7_all_HDEth-0.6_new.xlsx';
+% A = {'Execution Time'; Exec_time};
+% xlswrite(filename,A,imagename)
+
+% disp('Execution Time:');disp(Exec_time);
+% for i=1:m
+%     for j=1:n
+%         %disp('n:');disp(n);
+%         if (img(i,j,1)<=T) && (img(i,j,2)<=T) && (img(i,j,3)<=T)
+%             img1(i,j,:)=img(i,j,:);
+%             
+%         elseif (img(i,j,1)>=U) && (img(i,j,2)>=U) && (img(i,j,3)>=U)
+%             img3(i,j,:)=img(i,j,:);
+%             
+%         else
+%               img2(i,j,:)=img(i,j,:);
+%         end
+%     end  
+% end
+close all;
+figure;
+imshow([Oimg Odehazed_img]);title('GT hazy dehazed');
+% figure;
+% imshow(Oimg);title('Hazy');
+% drawnow;
+% imshow([img1 img2 img3]);title('Less-Affected vs Moderately-Affected vs More-Affected');
+% drawnow;
+%figure(5);
+%imagesc(dehazed_img_smoothing); 
+%title('dehazed img smoothing');
